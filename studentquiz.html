@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>실시간 퀴즈 참여 - 학생용</title>
+  <!-- P2P 통신용 PeerJS 라이브러리 -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  
+  <style>
+    * { box-sizing: border-box; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; }
+    body { margin: 0; padding: 16px; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    
+    /* 중앙 메인 카드 컨테이너 */
+    .card { background: white; width: 100%; max-width: 480px; border-radius: 20px; padding: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); text-align: center; }
+    
+    /* 화면 전환용 클래스 (기본 숨김, active 시 표시) */
+    .screen { display: none; }
+    .screen.active { display: block; }
+    
+    h1 { font-size: 22px; color: #1a1a1a; margin-bottom: 20px; }
+    .input-group { margin-bottom: 16px; text-align: left; }
+    label { font-size: 14px; font-weight: 600; color: #4a5568; display: block; margin-bottom: 6px; }
+    input[type="text"], select { width: 100%; padding: 14px; font-size: 16px; border: 2px solid #e2e8f0; border-radius: 12px; outline: none; transition: border-color 0.2s; }
+    input[type="text"]:focus, select:focus { border-color: #3182ce; }
+    
+    /* 닉네임 입력란 + 랜덤 생성 버튼 가로 배치 */
+    .nickname-wrapper { display: flex; gap: 8px; }
+    .btn-random {
+      padding: 0 16px;
+      font-size: 15px;
+      font-weight: 700;
+      background-color: #edf2f7;
+      color: #2d3748;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .btn-random:hover { background-color: #e2e8f0; border-color: #cbd5e0; }
+    .btn-random:active { transform: scale(0.95); }
+
+    .btn { width: 100%; padding: 16px; font-size: 18px; font-weight: 700; border: none; border-radius: 12px; cursor: pointer; transition: transform 0.1s, background-color 0.2s; }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary { background-color: #3182ce; color: white; margin-top: 10px; }
+    
+    /* 대기 화면 동적 그라데이션 및 애니메이션 효과 */
+    #waitScreen {
+      padding: 36px 20px;
+      border-radius: 16px;
+      background: linear-gradient(-45deg, #ebf8ff, #ebf4ff, #faf5ff, #f0fff4);
+      background-size: 400% 400%;
+      animation: waitGradient 8s ease infinite;
+      box-shadow: inset 0 0 12px rgba(49, 130, 206, 0.08);
+    }
+
+    @keyframes waitGradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .wait-icon {
+      font-size: 52px;
+      margin-bottom: 12px;
+      display: inline-block;
+      animation: pulseWait 1.8s ease-in-out infinite;
+    }
+
+    @keyframes pulseWait {
+      0% { transform: scale(1); opacity: 0.85; }
+      50% { transform: scale(1.15); opacity: 1; }
+      100% { transform: scale(1); opacity: 0.85; }
+    }
+
+    /* 선택지 4색 터치 버튼 Grid */
+    .option-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+    .opt-btn { height: 120px; font-size: 32px; font-weight: 800; color: white; border: none; border-radius: 16px; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .opt-1 { background-color: #e53e3e; } /* 빨강 */
+    .opt-2 { background-color: #3182ce; } /* 파랑 */
+    .opt-3 { background-color: #d69e2e; } /* 노랑 */
+    .opt-4 { background-color: #38a169; } /* 초록 */
+    
+    .status-msg { font-size: 18px; color: #2d3748; margin: 16px 0; font-weight: 700; }
+    .result-box { padding: 20px; border-radius: 16px; margin-bottom: 16px; }
+    .result-correct { background-color: #c6f6d5; color: #22543d; }
+    .result-wrong { background-color: #fed7d7; color: #742a2a; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    
+    <!-- 1. 프로필 및 접속 코드 입력 화면 -->
+    <div id="joinScreen" class="screen active">
+      <h1>🎮 퀴즈 참여하기</h1>
+      
+      <div class="input-group">
+        <label for="roomCode">참여 코드 (방 이름)</label>
+        <input type="text" id="roomCode" placeholder="안내에 따라서 코드를 입력해주세요." autocomplete="off">
+      </div>
+
+      <div class="input-group">
+        <label for="avatar">프로필 아바타</label>
+        <select id="avatar">
+          <option value="🦊">🦊 행운의 왕여우</option>
+          <option value="🤖">🤖 똑똑한 로봇</option>
+          <option value="🦁">🦁 용감한 사자</option>
+          <option value="🐱">🐱 귀여운 고양이</option>
+          <option value="👽">👽 엉뚱한 외계인</option>
+          <option value="🤔">🤔 궁금한 질문왕</option>
+          <option value="🎲">🎲 찍신 강림 주사위</option>
+          <option value="🦝">🦝 영리한 너구리</option>
+          <option value="🐼">🐼 배부른 판다</option>
+          <option value="👻">👻 장난꾸러기 유령</option>
+        </select>
+      </div>
+
+      <div class="input-group">
+        <label for="nickname">닉네임</label>
+        <div class="nickname-wrapper">
+          <input type="text" id="nickname" placeholder="닉네임 직접 입력 또는 랜덤 생성" autocomplete="off">
+          <button type="button" class="btn-random" onclick="generateRandomNickname()">🎲 랜덤</button>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" onclick="joinRoom()">입장하기</button>
+    </div>
+
+    <!-- 2. 대기 상태 화면 (은은한 배경색 변화 및 박동 애니메이션 적용) -->
+    <div id="waitScreen" class="screen">
+      <div class="wait-icon">⏳</div>
+      <div class="status-msg">선생님이 문제를 시작할 때까지 대기하세요!</div>
+      <p style="color: #718096; font-size: 14px; margin: 0;">준비가 완료되면 문제 화면으로 자동 전환됩니다.</p>
+    </div>
+
+    <!-- 3. 선택지 터치/입력 화면 -->
+    <div id="quizScreen" class="screen">
+      <h2 id="questionNum" style="color: #2d3748; margin-bottom: 10px;">Q1</h2>
+      <p style="color: #718096; font-size: 14px;">화면을 터치하거나 키보드 숫자(1~4)를 누르세요</p>
+      
+      <div class="option-grid">
+        <button class="opt-btn opt-1" onclick="sendAnswer(1)">①</button>
+        <button class="opt-btn opt-2" onclick="sendAnswer(2)">②</button>
+        <button class="opt-btn opt-3" onclick="sendAnswer(3)">③</button>
+        <button class="opt-btn opt-4" onclick="sendAnswer(4)">④</button>
+      </div>
+    </div>
+
+    <!-- 4. 답안 제출 완료 후 대기 화면 -->
+    <div id="submittedScreen" class="screen">
+      <div style="font-size: 48px; margin-bottom: 12px;">🎯</div>
+      <div class="status-msg">답안 제출 완료!</div>
+      <p style="color: #718096;">다른 친구들이 풀 때까지 잠시 기다려주세요.</p>
+    </div>
+
+    <!-- 5. 채점 결과 및 개별 해설 표시 화면 -->
+    <div id="resultScreen" class="screen">
+      <div id="resultBox" class="result-box">
+        <h2 id="resultText" style="margin: 0;"></h2>
+      </div>
+      <div style="text-align: left; background: #f7fafc; padding: 16px; border-radius: 12px; margin-top: 12px;">
+        <strong style="color: #2d3748; display: block; margin-bottom: 6px;">💡 문제 해설</strong>
+        <p id="explanationText" style="margin: 0; color: #4a5568; line-height: 1.5; font-size: 14px;"></p>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let peer = null;
+    let conn = null;
+    let startTime = 0;
+
+    // 접두사 (101종)
+    const prefixes = [
+      '귀여운', '공부가 좋은', '공부하는', '공명하는', '국어가 좋은', '과학이 좋은', '기분 좋은', '기억력이 좋은', '길을 찾는', '고민하는', '깜찍한', '깔끔한', '꿈꾸는', 
+      '내 꿈은', '낯선', '노래하는', '느긋한', '나아가는', '날아가는', 
+      '다정한', '두근대는', '달려가는', '달을 보는', '떨고있는', '똑똑한', 
+      '로봇 같은', 
+      '마법의', '무적의', '문제푸는', '명예로운', '미술이 좋은', '미소짓는', '명석한', '모험을 즐기는', '말하는', 
+      '빛나는', '번뜩이는', '바다의', '별에서 온', '별을 보는', '배고픈', '반짝이는', '빠른', 
+      '슬기로운', '성실한', '씩씩한', '신중한', '신이난', '상냥한', '수학이 좋은', '속도를 즐기는', '숲속의', '숲을 보는', '속삭이는', '사랑스러운', '사랑받는', '성장하는', '신비로운', 
+      '엉뚱한', '의문의', '음악이 좋은', '용감한', '용맹한', '우주 최강의', '우주에서 온', '열정적인', '역사가 좋은', '여행하는', '웃고 있는', '오늘을 즐기는', '아름다운', '우아한', 
+      '잠자는 숲속의', '지혜로운', '정의로운', '재미있는', '질문하는', '중얼거리는', '장난스러운', '자유로운', '집중하는', '전설적인', '자신감 있는', 
+      '천재적인', '친구같은', '체육이 좋은', '착한', '춤추는', 
+      '퀴즈가 좋은', '키가 큰', 
+      '탐구하는', '태평한', 
+      '행운의', '호기심 많은', '행복한', '흥얼거리는', '흥겨운', '활동적인', '활기찬', '학교가 좋은', 
+      '1등을 바라는'
+    ];
+    //닉네임 (110종)
+    const names = [
+      '고양이', '고라니', '강아지', '기린', '골리앗', '갈릴레이', '광개토대왕', '과학자', '고흐', '꼬북이', 
+      '나비', '나폴레옹', '뉴턴', '누렁이', 
+      '다람쥐', '단군할아버지', '돌턴', '다윈', '다빈치', 
+      '루돌프', '로키', '루이지', '랏코', '라부부', '링크', '라이너스 폴링', '라부아지에', 
+      '마리오', '멘델레예프', '멘델', '모차르트', '마리퀴리', '미켈란젤로', '모몽가', '메타몽', '맥스웰','맥아더', 
+      '병아리', '백호', '베토벤', '봉준호', 
+      '세이렌', '산타', '시인', '솜사탕', '솜뭉치', '스티브 잡스', '소크라테스', '스피드 레이서', '세종대왕', '선덕여왕', '시사', '솔로몬', '손흥민', 
+      '오리', '요다', '왓슨과 크릭', '아르키메데스', '이순신', '알프레드 노벨', '우사기', '이브이', '안경잡이', '아인슈타인', '에디슨', '우장춘', '아노코', '유튜버', '윤동주', '우주인', '역사학자', '일론 머스크', 
+      '잠만보', '장영실', '젤다', '제우스', 
+      '치이카와', '치즈 냥이', '춘식이', '참새',  '최무선', '청설모', '청룡', 
+      '쿠리만쥬', '클레오파트라', '칼 세이건', '코스모스', '쿠로미', 
+      '타조', '토끼', '토르', '털뭉치', '티라노 사우르스', '토토로', 
+      '피치 공주', '피타고라스', '파스퇴르', 
+      '폼폼푸린', '페이커', '피카츄', '파이리', '플라톤', '펭수', 
+      '하늘다람쥐', '하치와레', '해바라기', '하버', '호랑이', '화학자', '한강작가'
+    ];
+    //기타 이모지 (20종)
+    const emoji = [
+        '😎','😊','😋','😙','🥰','☺️','🤔','🙃','😴','🫪','🤪','🤫','🤥','🥳','😵‍💫','😫','😉','🤣','🤭','😳'
+    ];
+    // 랜덤 닉네임 생성 함수
+    function generateRandomNickname() {
+      const randomPrefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+      const randomName = names[Math.floor(Math.random() * names.length)];
+      const randomEmoji = emoji[Math.floor(Math.random() * emoji.length)];
+      document.getElementById('nickname').value = `${randomPrefix} ${randomName} ${randomEmoji}`;
+    }
+
+    // 1. 랜덤 아바타 선택 함수 추가
+    function generateRandomAvatar() {
+        const avatarSelect = document.getElementById('avatar');
+        const options = avatarSelect.options;
+        const randomIndex = Math.floor(Math.random() * options.length);
+        avatarSelect.selectedIndex = randomIndex;
+    }
+
+// 2. 초기 로드시 닉네임과 아바타 모두 랜덤으로 설정
+    window.addEventListener('DOMContentLoaded', () => {
+        generateRandomNickname();
+        generateRandomAvatar(); // <- 추가
+    });
+
+    function joinRoom() {
+      const roomCode = document.getElementById('roomCode').value.trim();
+      const nickname = document.getElementById('nickname').value.trim();
+      const avatar = document.getElementById('avatar').value;
+
+      if (!roomCode || !nickname) return alert("참여 코드와 닉네임을 입력해주세요!");
+
+      peer = new Peer();
+
+      peer.on('open', (id) => {
+        conn = peer.connect(roomCode);
+
+        conn.on('open', () => {
+          conn.send({
+            type: 'JOIN',
+            nickname: nickname,
+            avatar: avatar
+          });
+          showScreen('waitScreen');
+        });
+
+        conn.on('data', (data) => {
+          handleTeacherSignal(data);
+        });
+
+        conn.on('error', (err) => {
+          alert("해당 코드로 연결에 실패했습니다. 코드를 확인하고 다시 시도해주세요.");
+        });
+      });
+    }
+
+    function handleTeacherSignal(data) {
+      switch (data.type) {
+        case 'QUESTION_START':
+          startTime = performance.now();
+          document.getElementById('questionNum').innerText = `Q${data.questionIndex}`;
+          showScreen('quizScreen');
+          break;
+
+        case 'SHOW_RESULT':
+          const resultBox = document.getElementById('resultBox');
+          const resultText = document.getElementById('resultText');
+          
+          if (data.isCorrect) {
+            resultBox.className = 'result-box result-correct';
+            resultText.innerText = '⭕ 정답입니다!';
+          } else {
+            resultBox.className = 'result-box result-wrong';
+            resultText.innerText = '❌ 오답입니다!';
+          }
+
+          document.getElementById('explanationText').innerText = data.explanation || '해설이 없습니다.';
+          showScreen('resultScreen');
+          break;
+
+        case 'QUIZ_END':
+          alert("퀴즈가 완전히 종료되었습니다. 수고하셨습니다!");
+          showScreen('waitScreen');
+          break;
+      }
+    }
+
+    function sendAnswer(optionIndex) {
+      const timeTaken = ((performance.now() - startTime) / 1000).toFixed(2);
+
+      conn.send({
+        type: 'SUBMIT_ANSWER',
+        selectedOption: optionIndex,
+        timeTaken: parseFloat(timeTaken)
+      });
+
+      showScreen('submittedScreen');
+    }
+
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(screenId).classList.add('active');
+    }
+
+    window.addEventListener('keydown', (e) => {
+      const quizScreen = document.getElementById('quizScreen');
+      if (quizScreen.classList.contains('active')) {
+        if (['1', '2', '3', '4'].includes(e.key)) {
+          sendAnswer(parseInt(e.key));
+        }
+      }
+    });
+  </script>
+</body>
+</html>
