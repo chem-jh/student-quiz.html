@@ -82,16 +82,89 @@
     .opt-3 { background-color: #d69e2e; } /* 노랑 */
     .opt-4 { background-color: #38a169; } /* 초록 */
     
+/* [각주 15] 학생 화면용 시원하게 확대된 이모지 아바타 스타일 */
+  .avatar-large { font-size: 64px; display: inline-block; vertical-align: middle; margin-bottom: 8px; }
+  .avatar-medium { font-size: 36px; display: inline-block; vertical-align: middle; }
+
+    /* [각주 10] 학생 화면 우측 상단 고정 닉네임 & 점수 표시 바 */
+    .top-user-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #edf2f7;
+      padding: 8px 16px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      border: 1px solid #cbd5e0;
+    }
+    .user-info { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 16px; color: #2d3748; }
+    .user-score { background: #3182ce; color: white; padding: 4px 12px; border-radius: 15px; font-weight: 800; font-size: 15px; }
+
+    /* [각주 11] 리더보드 1~5위 팝업 카드 스타일 */
+    .leaderboard-card { background: #ffffff; border: 2px solid #e2e8f0; border-radius: 12px; padding: 10px 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
     .status-msg { font-size: 18px; color: #2d3748; margin: 16px 0; font-weight: 700; }
     .result-box { padding: 20px; border-radius: 16px; margin-bottom: 16px; }
     .result-correct { background-color: #c6f6d5; color: #22543d; }
     .result-wrong { background-color: #fed7d7; color: #742a2a; }
+    /* [각주 1] 학생 화면 타임 바 바깥 틀 */
+  .timer-bar-container {
+    width: 100%;
+    height: 12px;
+    background-color: #e2e8f0;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 10px;
+    margin-bottom: 12px;
+  }
+
+  /* [각주 2] 우측에서 좌측으로 줄어드는 동적 학생용 타이머 바 */
+  .student-timer-bar {
+    height: 100%;
+    width: 100%;
+    background-color: #38a169;
+    border-radius: 6px;
+    margin-left: auto; /* 우측 고정 기준 -> 좌측 방향 진행 */
+    transition: width 1s linear, background-color 0.3s ease;
+  }
+
+  /* [각주 3] 3초 지문 미리보기 화면 레이아웃 스타일 */
+  #previewScreen {
+    padding: 32px 20px;
+  }
+  .preview-msg {
+    font-size: 20px;
+    font-weight: 700;
+    color: #2d3748;
+    margin: 20px 0 14px 0;
+    line-height: 1.4;
+    word-break: keep-all;
+  }
+  .preview-timer-text {
+    font-size: 18px;
+    font-weight: 800;
+    color: #3182ce;
+    background: #ebf8ff;
+    display: inline-block;
+    padding: 8px 20px;
+    border-radius: 20px;
+  }
   </style>
 </head>
 <body>
 
-  <div class="card">
+<div class="card">
     
+    <!-- [각주 12] 우측 상단 닉네임, 아바타, 실시간 누적 점수 표시 헤더 바 -->
+    <div id="studentHeaderBar" class="top-user-bar hidden">
+      <div class="user-info">
+        <span id="headerAvatar" class="avatar-medium">👤</span>
+        <span id="headerNickname">닉네임</span>
+      </div>
+      <div class="user-score">
+        <span id="headerScore">0</span>점
+      </div>
+    </div>
+
     <!-- 1. 프로필 및 접속 코드 입력 화면 -->
     <div id="joinScreen" class="screen active">
       <h1>🎮 퀴즈 참여하기</h1>
@@ -135,10 +208,27 @@
       <p style="color: #718096; font-size: 14px; margin: 0;">준비가 완료되면 문제 화면으로 자동 전환됩니다.</p>
     </div>
 
-    <!-- 3. 선택지 터치/입력 화면 -->
+    <!-- 2-1. 3초 문제 미리보기 화면 -->
+    <!-- [각주 4] 문제 시작 전 "화면에 문제와 보기가 표시됩니다.(3s)" 메시지를 보여주는 전용 화면 -->
+    <div id="previewScreen" class="screen">
+      <h2 id="previewQuestionNum" style="color: #3182ce; margin-bottom: 10px;">Q1</h2>
+      <div class="preview-msg">화면에 문제와 보기가 표시됩니다.</div>
+      <div class="preview-timer-text">⏳ (<span id="previewCount">3</span>s)</div>
+    </div>
+
+    <!-- 3. 선택지 터치/입력 및 타임 바 화면 -->
+    <!-- [각주 5] 남은 시간을 시각적으로 보여주는 타임 바가 배치된 문제 제출 화면 -->
     <div id="quizScreen" class="screen">
-      <h2 id="questionNum" style="color: #2d3748; margin-bottom: 10px;">Q1</h2>
-      <p style="color: #718096; font-size: 14px;">화면을 터치하거나 키보드 숫자(1~4)를 누르세요</p>
+      <!-- 학생용 프로그레스 바 영역 -->
+      <div class="timer-bar-container">
+        <div id="studentTimerBar" class="student-timer-bar"></div>
+      </div>
+      
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <h2 id="questionNum" style="color: #2d3748; margin: 0;">Q1</h2>
+        <span style="font-size: 15px; font-weight: bold; color: #e53e3e;">⏳ <span id="studentTimer">30</span>초</span>
+      </div>
+      <p style="color: #718096; font-size: 14px; margin-top: 0;">화면을 터치하거나 키보드 숫자(1~4)를 누르세요</p>
       
       <div class="option-grid">
         <button class="opt-btn opt-1" onclick="sendAnswer(1)">①</button>
@@ -148,21 +238,53 @@
       </div>
     </div>
 
-    <!-- 4. 답안 제출 완료 후 대기 화면 -->
+<!-- 4. 답안 제출 완료 후 대기 화면 (랜덤 멘트 출력) -->
     <div id="submittedScreen" class="screen">
-      <div style="font-size: 48px; margin-bottom: 12px;">🎯</div>
-      <div class="status-msg">답안 제출 완료!</div>
-      <p style="color: #718096;">다른 친구들이 풀 때까지 잠시 기다려주세요.</p>
+      <div style="font-size: 52px; margin-bottom: 12px;">🎯</div>
+      <div class="status-msg" id="submitWaitTitle">답안제출 완료!</div>
+      <p id="submitWaitSubtext" style="color: #4a5568; font-size: 16px; font-weight: 600;"></p>
     </div>
 
-    <!-- 5. 채점 결과 및 개별 해설 표시 화면 -->
+    <!-- 5. 채점 결과 및 개별 해설 표시 화면 (다음 문제 대기 랜덤 멘트 추가) -->
     <div id="resultScreen" class="screen">
       <div id="resultBox" class="result-box">
         <h2 id="resultText" style="margin: 0;"></h2>
       </div>
       <div style="text-align: left; background: #f7fafc; padding: 16px; border-radius: 12px; margin-top: 12px;">
         <strong style="color: #2d3748; display: block; margin-bottom: 6px;">💡 문제 해설</strong>
-        <p id="explanationText" style="margin: 0; color: #4a5568; line-height: 1.5; font-size: 14px;"></p>
+        <p id="explanationText" style="margin: 0; color: #4a5568; line-height: 1.5; font-size: 14px; margin-bottom: 12px;"></p>
+      </div>
+      <!-- [각주 16] 정답/해설 공개 후 다음 문제 전환을 기다리는 무작위 안내 문구 영역 -->
+      <div id="nextWaitText" style="margin-top: 15px; padding: 10px; background: #ebf8ff; color: #2b6cb0; border-radius: 10px; font-weight: 700; font-size: 15px;">
+        다음 문제까지 잠깐만 기다려주세요.
+      </div>
+    </div>
+
+    <!-- 6. [각주 13] 퀴즈 최종 종료 후 개인 종합 성적표 화면 (총점, 맞은/틀린 문제수, 최종 등수) -->
+    <div id="finalReportScreen" class="screen">
+      <div style="font-size: 50px; margin-bottom: 10px;">🏆</div>
+      <h2 style="color: #2d3748; margin-bottom: 5px;">퀴즈 최종 성적표</h2>
+      <p style="color: #718096; margin-bottom: 20px;">수고하셨습니다! 나의 최종 결과입니다.</p>
+
+      <div style="background: #f7fafc; border: 2px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-bottom: 15px;">
+        <div style="font-size: 24px; font-weight: 800; color: #3182ce; margin-bottom: 12px;">
+          🥇 최종 등수: <span id="finalRankText" style="color: #e53e3e;">1위</span> / <span id="finalTotalStudents">0</span>명
+        </div>
+        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 12px 0;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; text-align: center;">
+          <div>
+            <div style="font-size: 13px; color: #718096;">총 점수</div>
+            <div style="font-size: 20px; font-weight: 800; color: #2d3748;"><span id="finalScoreText">0</span>점</div>
+          </div>
+          <div>
+            <div style="font-size: 13px; color: #718096;">맞은 문제</div>
+            <div style="font-size: 20px; font-weight: 800; color: #38a169;"><span id="finalCorrectText">0</span>개</div>
+          </div>
+          <div>
+            <div style="font-size: 13px; color: #718096;">틀린 문제</div>
+            <div style="font-size: 20px; font-weight: 800; color: #e53e3e;"><span id="finalWrongText">0</span>개</div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -172,6 +294,10 @@
     let peer = null;
     let conn = null;
     let startTime = 0;
+    let studentTimerInterval = null; // [각주 6] 학생 화면 메인 타이머 인터벌
+    let previewTimerInterval = null; // [각주 7] 3초 미리보기 타이머 인터벌
+    let studentTimeRemaining = 30;
+    let studentTotalTime = 30;
 
     // 접두사 (101종)
     const prefixes = [
@@ -246,12 +372,20 @@
       peer.on('open', (id) => {
         conn = peer.connect(roomCode);
 
+         /* [각주 17] 대기실 입장 완료 시 우측 상단 닉네임/아바타/점수 헤더 바 표시 */
         conn.on('open', () => {
           conn.send({
             type: 'JOIN',
             nickname: nickname,
             avatar: avatar
           });
+
+          // 우측 상단 프로필 헤더 바 데이터 세팅 및 노출
+          document.getElementById('headerAvatar').innerText = avatar;
+          document.getElementById('headerNickname').innerText = nickname;
+          document.getElementById('headerScore').innerText = '0';
+          document.getElementById('studentHeaderBar').classList.remove('hidden');
+
           showScreen('waitScreen');
         });
 
@@ -265,38 +399,70 @@
       });
     }
 
+/* [각주 8] PREVIEW_START 및 QUESTION_START 신호를 수신하여 3초 미리보기 및 타임 바를 동작시키는 이벤트 핸들러 */
+/* [각주 14] 실시간 점수 반영, 우측 상단 헤더 갱신 및 최종 성적표 수신 처리 */
     function handleTeacherSignal(data) {
       switch (data.type) {
+        case 'PREVIEW_START':
+          startStudentPreview(data.questionIndex || 1, 3);
+          break;
+
         case 'QUESTION_START':
+          clearInterval(previewTimerInterval);
           startTime = performance.now();
           document.getElementById('questionNum').innerText = `Q${data.questionIndex}`;
           showScreen('quizScreen');
+          startStudentTimer(data.timeLimit || 30);
           break;
 
+ /* [각주 6] 시간 초과 시 '⏱ 시간이 초과했습니다!' 전용 문구 표출 */
         case 'SHOW_RESULT':
+          clearInterval(studentTimerInterval);
+          if (data.currentScore !== undefined) {
+            document.getElementById('headerScore').innerText = data.currentScore;
+          }
+
           const resultBox = document.getElementById('resultBox');
           const resultText = document.getElementById('resultText');
           
           if (data.isCorrect) {
             resultBox.className = 'result-box result-correct';
             resultText.innerText = '⭕ 정답입니다!';
+          } else if (data.isTimeout) {
+            // [각주 7] 제한시간 내에 답변을 제출하지 못한 경우 안내 텍스트
+            resultBox.className = 'result-box result-wrong';
+            resultText.innerText = '⏱ 시간이 초과했습니다!';
           } else {
             resultBox.className = 'result-box result-wrong';
             resultText.innerText = '❌ 오답입니다!';
           }
 
           document.getElementById('explanationText').innerText = data.explanation || '해설이 없습니다.';
+          document.getElementById('nextWaitText').innerText = getRandomItem(nextWaitMessages);
+          
           showScreen('resultScreen');
           break;
 
         case 'QUIZ_END':
-          alert("퀴즈가 완전히 종료되었습니다. 수고하셨습니다!");
-          showScreen('waitScreen');
+          // [각주 16] 퀴즈 종료 시 전달받은 개인 최종 성적(등수, 총점, 맞은수, 틀린수)을 성적표에 채우고 표시
+          clearInterval(studentTimerInterval);
+          document.getElementById('studentHeaderBar').classList.add('hidden'); // 헤더 숨김
+
+          document.getElementById('finalRankText').innerText = `${data.finalRank || 1}위`;
+          document.getElementById('finalTotalStudents').innerText = data.totalStudents || 1;
+          document.getElementById('finalScoreText').innerText = data.totalScore || 0;
+          document.getElementById('finalCorrectText').innerText = data.correctCount || 0;
+          document.getElementById('finalWrongText').innerText = data.wrongCount || 0;
+
+          showScreen('finalReportScreen');
           break;
       }
     }
 
+     /* [각주 11] 답안 제출 시 타이머 인터벌을 멈추고 제출 완료 화면으로 전환 */
     function sendAnswer(optionIndex) {
+      clearInterval(studentTimerInterval); // 답 제출 시 타임 바 정지
+
       const timeTaken = ((performance.now() - startTime) / 1000).toFixed(2);
 
       conn.send({
@@ -306,6 +472,70 @@
       });
 
       showScreen('submittedScreen');
+    }
+
+    /* [각주 12] 3초 미리보기 화면 카운트다운 함수 */
+    function startStudentPreview(qNum, duration = 3) {
+      clearInterval(previewTimerInterval);
+      document.getElementById('previewQuestionNum').innerText = `Q${qNum}`;
+      
+      let count = duration;
+      document.getElementById('previewCount').innerText = count;
+      showScreen('previewScreen');
+
+      previewTimerInterval = setInterval(() => {
+        count--;
+        if (count >= 0) {
+          document.getElementById('previewCount').innerText = count;
+        }
+        if (count <= 0) {
+          clearInterval(previewTimerInterval);
+        }
+      }, 1000);
+    }
+
+    /* [각주 13] 학생 화면 타임 바 및 1초 단위 시간 감소 함수 */
+    function startStudentTimer(limit) {
+      studentTotalTime = limit || 30;
+      studentTimeRemaining = studentTotalTime;
+
+      const timerEl = document.getElementById('studentTimer');
+      if (timerEl) timerEl.innerText = studentTimeRemaining;
+
+      // 타임 바 초기화 (100% 너비, 초록색)
+      updateStudentTimerBar(100, '#38a169');
+      clearInterval(studentTimerInterval);
+
+      studentTimerInterval = setInterval(() => {
+        studentTimeRemaining--;
+        if (timerEl) timerEl.innerText = Math.max(0, studentTimeRemaining);
+
+        // 남은 비율 계산 (100% ~ 0%)
+        const percentage = Math.max(0, (studentTimeRemaining / studentTotalTime) * 100);
+        
+        // 50% 이하: 주황색, 25% 이하: 빨간색
+        let barColor = '#38a169';
+        if (percentage <= 25) {
+          barColor = '#e53e3e';
+        } else if (percentage <= 50) {
+          barColor = '#dd6b20';
+        }
+
+        updateStudentTimerBar(percentage, barColor);
+
+        if (studentTimeRemaining < 0) {
+          clearInterval(studentTimerInterval);
+        }
+      }, 1000);
+    }
+
+    /* [각주 14] 학생 화면 프로그레스 바 UI 갱신 함수 (우측->좌측 줄어듬) */
+    function updateStudentTimerBar(percent, color) {
+      const bar = document.getElementById('studentTimerBar');
+      if (bar) {
+        bar.style.width = `${percent}%`;
+        bar.style.backgroundColor = color;
+      }
     }
 
     function showScreen(screenId) {
@@ -321,6 +551,42 @@
         }
       }
     });
+    /* [각주 17] 답안 제출 대기 시 출력할 무작위 안심 멘트 목록 */
+    const submitWaitMessages = [
+      "답안제출 완료! 다른 친구들이 풀 때까지 잠시 기다려주세요.",
+      "성공적으로 답안이 전달되었습니다! 잠시만 대기해 주세요.",
+      "멋진 제출이에요! 다른 친구들의 답변을 기다리는 중입니다.",
+      "답 제출 완료! 과연 정답일까요? 결과 발표를 기다려주세요!"
+    ];
+
+    /* [각주 18] 답안 공개 후 다음 문제 전환 대기 시 출력할 무작위 멘트 목록 */
+    const nextWaitMessages = [
+      "다음 문제까지 잠깐만 기다려주세요.",
+      "잠시 후 다음 문제가 시작됩니다! 마음의 준비를 하세요.",
+      "선생님이 다음 문제를 준비하고 있습니다. 잠시만 대기해 주세요!",
+      "다음 문제는 어떤 내용일까요? 곧 공개됩니다!"
+    ];
+
+    function getRandomItem(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    /* [각주 19] sendAnswer 시 제출 대기 랜덤 멘트를 세팅하는 로직 적용 */
+    function sendAnswer(optionIndex) {
+      clearInterval(studentTimerInterval);
+
+      const timeTaken = ((performance.now() - startTime) / 1000).toFixed(2);
+
+      conn.send({
+        type: 'SUBMIT_ANSWER',
+        selectedOption: optionIndex,
+        timeTaken: parseFloat(timeTaken)
+      });
+
+      // 제출 대기 무작위 멘트 적용
+      document.getElementById('submitWaitSubtext').innerText = getRandomItem(submitWaitMessages);
+      showScreen('submittedScreen');
+    }
   </script>
 </body>
 </html>
