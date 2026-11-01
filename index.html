@@ -234,8 +234,8 @@
     const prefixes = [
       '귀여운', '공부가 좋은', '공부하는', '공명하는', '국어가 좋은', '과학이 좋은', '기분 좋은', '기억력이 좋은', '길을 찾는', '고민하는', '깜찍한', '깔끔한', '꿈꾸는', 
       '내 꿈은', '낯선', '노래하는', '느긋한', '나아가는', '날아가는', 
-      '다정한', '두근대는', '달려가는', '달을 보는', '떨고있는', '똑똑한', 
-      '로봇 같은', 
+      '다정한', '두근대는', '달려가는', '달을 보는', '떨고있는', '똑똑한', '독창적인', 
+      '로봇 같은', '락을 즐기는', 
       '마법의', '무적의', '문제푸는', '명예로운', '미술이 좋은', '미소짓는', '명석한', '모험을 즐기는', '말하는', 
       '빛나는', '번뜩이는', '바다의', '별에서 온', '별을 보는', '배고픈', '반짝이는', '빠른', 
       '슬기로운', '성실한', '씩씩한', '신중한', '신이난', '상냥한', '수학이 좋은', '속도를 즐기는', '숲속의', '숲을 보는', '속삭이는', '사랑스러운', '사랑받는', '성장하는', '신비로운', 
@@ -253,11 +253,11 @@
       '다람쥐', '단군할아버지', '돌턴', '다윈', '다빈치', 
       '루돌프', '로키', '루이지', '랏코', '라부부', '링크', '라이너스 폴링', '라부아지에', 
       '마리오', '멘델레예프', '멘델', '모차르트', '마리퀴리', '미켈란젤로', '모몽가', '메타몽', '맥스웰','맥아더', 
-      '병아리', '백호', '베토벤', '봉준호', 
+      '병아리', '백호', '베토벤', '봉준호', '반데르발스', 
       '세이렌', '산타', '시인', '솜사탕', '솜뭉치', '스티브 잡스', '소크라테스', '스피드 레이서', '세종대왕', '선덕여왕', '시사', '솔로몬', '손흥민', 
       '오리', '요다', '왓슨과 크릭', '아르키메데스', '이순신', '알프레드 노벨', '우사기', '이브이', '안경잡이', '아인슈타인', '에디슨', '우장춘', '아노코', '유튜버', '윤동주', '우주인', '역사학자', '일론 머스크', 
       '잠만보', '장영실', '젤다', '제우스', 
-      '치이카와', '치즈 냥이', '춘식이', '참새',  '최무선', '청설모', '청룡', 
+      '치이카와', '치즈 냥이', '춘식이', '참새',  '최무선', '청설모', 
       '쿠리만쥬', '클레오파트라', '칼 세이건', '코스모스', '쿠로미', 
       '타조', '토끼', '토르', '털뭉치', '티라노 사우르스', '토토로', 
       '피치 공주', '피타고라스', '파스퇴르', 
@@ -300,7 +300,7 @@
           conn.send({ type: 'JOIN', studentId: studentId, nickname: nickname, avatar: avatar });
         });
         conn.on('data', (data) => { handleTeacherSignal(data); });
-        conn.on('error', (err) => { alert("연결 실패! 좌석번호를 확인하세요."); });
+        conn.on('error', (err) => { alert("연결 실패! 항공편명을 확인하세요."); });
       });
     }
 
@@ -338,17 +338,18 @@
 
           const statusMsgEl = document.querySelector('#waitScreen .status-msg');
           if (data.isQuizActive && statusMsgEl) {
-            statusMsgEl.innerText = "곧 참여해요. 잠시만 기다려주세요! ⏳";
+            statusMsgEl.innerText = "다음 문제부터 참여해요. 잠시만 기다려주세요! ⏳";
           } else if (statusMsgEl) {
-            statusMsgEl.innerText = "선생님이 시작할 때까지 잠시만 대기하세요!";
+            statusMsgEl.innerText = "선생님이 문제를 시작할 때까지 대기하세요!";
           }
           
           showScreen('waitScreen');
           break;
 
-        case 'PREVIEW_START':
-          startStudentPreview(data.questionIndex || 1, 3);
-          break;
+        // [요청 3] 설정된 미리보기 시간(data.duration) 반영
+      case 'PREVIEW_START':
+        startStudentPreview(data.questionIndex || 1, data.duration || 3);
+        break;
 
         /* [수정 4] 학생 화면 전송 여부(sendToStudent)와 상관없이 모든 슬라이드 탭에서 반응 전송이 가능하도록 slideScreen 활성화 (문제 탭은 quizScreen으로 자동 분리되어 반응 차단) */
       case 'SLIDE_START':
@@ -433,8 +434,9 @@
       }
     }
     /* [요청 2] 도배 방지를 위한 10초 반응 쿨타임 변수 */
-let lastReactionTime = 0;
-const REACTION_COOLDOWN_MS = 10000;
+// [요청 6] 도배 방지 쿨타임을 10초에서 5초(5000ms)로 감축
+  let lastReactionTime = 0;
+  const REACTION_COOLDOWN_MS = 5000;
     /* [수정] 슬라이드 반응 및 커스텀 한 줄 의견 전송 함수 추가 (누락되었던 전송 로직 복구) */
     /* [요청 2] 10초 쿨타임 검증 후 슬라이드 반응 전송 */
   function sendSlideReaction(emojiVal) {
@@ -443,7 +445,7 @@ const REACTION_COOLDOWN_MS = 10000;
 
     if (timePassed < REACTION_COOLDOWN_MS) {
       const remainSec = Math.ceil((REACTION_COOLDOWN_MS - timePassed) / 1000);
-      alert(`⏱  ${remainSec}초 쉬었다가 다시 말해볼까요?`);
+      alert(`⏱너무 급해요! ${remainSec}초 쉬었다가 다시 해주세요`);
       return;
     }
 
