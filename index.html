@@ -131,14 +131,30 @@
       <div class="preview-timer-text">⏳ (<span id="previewCount">3</span>s)</div>
     </div>
 
-    <!-- 2-2. 슬라이드 수신 화면 -->
-    <!-- [각주 3] 교사가 보낸 슬라이드를 받아 표출하는 학생용 화면 -->
-    <div id="slideScreen" class="screen" style="padding: 20px; text-align: center;">
-      <div style="font-size: 36px; margin-bottom: 8px;">📌</div>
-      <h2 id="studentSlideHeader" style="color: #805ad5; font-size: 22px; margin-bottom: 12px; word-break: keep-all;">개념 설명</h2>
-      <p id="studentSlideContent" style="color: #2d3748; font-size: 16px; line-height: 1.6; white-space: pre-wrap; margin-bottom: 16px;"></p>
-      <img id="studentSlideImage" src="" style="max-width: 100%; max-height: 220px; object-fit: contain; border-radius: 10px; border: 1px solid #e2e8f0; display: none;">
-    </div>
+    <!-- 2-2. 슬라이드 수신 화면 (수정 2: 점수/선택지 버튼 완전 배제 & 추가 2: 실시간 반응 버튼 추가) -->
+      <div id="slideScreen" class="screen" style="padding: 20px; text-align: center;">
+        <div style="font-size: 36px; margin-bottom: 8px;">📌</div>
+        <h2 id="studentSlideHeader" style="color: #805ad5; font-size: 22px; margin-bottom: 12px; word-break: keep-all;">개념 설명</h2>
+        <p id="studentSlideContent" style="color: #2d3748; font-size: 16px; line-height: 1.6; white-space: pre-wrap; margin-bottom: 16px;"></p>
+        <img id="studentSlideImage" src="" style="max-width: 100%; max-height: 220px; object-fit: contain; border-radius: 10px; border: 1px solid #e2e8f0; display: none; margin: 0 auto 16px auto;">
+        
+        <!-- [추가 2] 학생 실시간 이모지 및 의견 반응 바 -->
+        <div style="background: #faf5ff; border: 1px solid #e9d8fd; padding: 12px; border-radius: 14px; margin-top: 15px;">
+          <div style="font-size: 13px; font-weight: bold; color: #6b46c1; margin-bottom: 8px;">💬 선생님께 반응 보내기</div>
+          <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 8px;">
+            <button type="button" onclick="sendSlideReaction('👏')" style="font-size: 20px; padding: 6px 12px; background: white; border: 1px solid #d6bcfa; border-radius: 8px; cursor: pointer;">👏</button>
+            <button type="button" onclick="sendSlideReaction('❤️')" style="font-size: 20px; padding: 6px 12px; background: white; border: 1px solid #d6bcfa; border-radius: 8px; cursor: pointer;">❤️</button>
+            <button type="button" onclick="sendSlideReaction('💡')" style="font-size: 20px; padding: 6px 12px; background: white; border: 1px solid #d6bcfa; border-radius: 8px; cursor: pointer;">💡</button>
+            <button type="button" onclick="sendSlideReaction('🙋‍♂️')" style="font-size: 20px; padding: 6px 12px; background: white; border: 1px solid #d6bcfa; border-radius: 8px; cursor: pointer;">🙋‍♂️</button>
+            <button type="button" onclick="sendSlideReaction('👍')" style="font-size: 20px; padding: 6px 12px; background: white; border: 1px solid #d6bcfa; border-radius: 8px; cursor: pointer;">👍</button>
+          </div>
+          <!-- [수정 2] flex: 1 적용으로 인풋창 자동 확장 및 엔터키 전송(onkeydown) 추가 -->
+        <div style="display: flex; gap: 6px; width: 100%;">
+          <input type="text" id="slideCustomComment" placeholder="한 줄 의견 입력" onkeydown="if(event.key==='Enter') sendCustomComment()" style="flex: 1; font-size: 13px; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none;">
+          <button type="button" onclick="sendCustomComment()" style="background: #805ad5; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; white-space: nowrap;">전송</button>
+        </div>
+        </div>
+      </div>
 
     <!-- 3. 선택지 입력 화면 -->
     <div id="quizScreen" class="screen">
@@ -274,7 +290,7 @@
       const nickname = document.getElementById('nickname').value.trim();
       const avatar = document.getElementById('avatar').value;
 
-      if (!roomCode || !studentId || !nickname) return alert("항공편명, 좌석 번호, 닉네임을 확인해주세요!");
+      if (!roomCode || !studentId || !nickname) return alert("항공편명, 좌석 번호, 닉네임을 모두 입력해주세요!");
 
       peer = new Peer();
 
@@ -284,7 +300,7 @@
           conn.send({ type: 'JOIN', studentId: studentId, nickname: nickname, avatar: avatar });
         });
         conn.on('data', (data) => { handleTeacherSignal(data); });
-        conn.on('error', (err) => { alert("탑승 실패! 항공편명을 확인하세요."); });
+        conn.on('error', (err) => { alert("연결 실패! 좌석번호를 확인하세요."); });
       });
     }
 
@@ -322,9 +338,9 @@
 
           const statusMsgEl = document.querySelector('#waitScreen .status-msg');
           if (data.isQuizActive && statusMsgEl) {
-            statusMsgEl.innerText = "다음 문제부터 참여해요. 잠시만 기다려주세요! ⏳";
+            statusMsgEl.innerText = "곧 참여해요. 잠시만 기다려주세요! ⏳";
           } else if (statusMsgEl) {
-            statusMsgEl.innerText = "선생님이 문제를 시작할 때까지 대기하세요!";
+            statusMsgEl.innerText = "선생님이 시작할 때까지 잠시만 대기하세요!";
           }
           
           showScreen('waitScreen');
@@ -334,27 +350,29 @@
           startStudentPreview(data.questionIndex || 1, 3);
           break;
 
-        /* [각주 4] SLIDE_START 신호 수신 시 sendToStudent 설정값에 따라 슬라이드 표출 또는 대기 처리 */
-        case 'SLIDE_START':
-          clearInterval(previewTimerInterval);
-          clearInterval(studentTimerInterval);
-          if (data.sendToStudent) {
-            document.getElementById('studentSlideHeader').innerText = data.header || '📌 학습 개념';
-            document.getElementById('studentSlideContent').innerText = data.content || '';
-            const slideImg = document.getElementById('studentSlideImage');
-            if (data.image) {
-              slideImg.src = data.image;
-              slideImg.style.display = 'block';
-            } else {
-              slideImg.style.display = 'none';
-            }
-            showScreen('slideScreen');
+        /* [수정 4] 학생 화면 전송 여부(sendToStudent)와 상관없이 모든 슬라이드 탭에서 반응 전송이 가능하도록 slideScreen 활성화 (문제 탭은 quizScreen으로 자동 분리되어 반응 차단) */
+      case 'SLIDE_START':
+        clearInterval(previewTimerInterval);
+        clearInterval(studentTimerInterval);
+        const slideImg = document.getElementById('studentSlideImage');
+        
+        if (data.sendToStudent) {
+          document.getElementById('studentSlideHeader').innerText = data.header || '📌 학습 개념';
+          document.getElementById('studentSlideContent').innerText = data.content || '';
+          if (data.image) {
+            slideImg.src = data.image;
+            slideImg.style.display = 'block';
           } else {
-            const statusMsgEl = document.querySelector('#waitScreen .status-msg');
-            if (statusMsgEl) statusMsgEl.innerText = '선생님이 슬라이드를 설명 중입니다. 잠시 기다려주세요! ⏳';
-            showScreen('waitScreen');
+            slideImg.style.display = 'none';
           }
-          break;
+        } else {
+          // 화면 미전송 슬라이드일 경우 안내 문구 표출 후 반응 버튼이 포함된 slideScreen 활성화
+          document.getElementById('studentSlideHeader').innerText = '📌 선생님 슬라이드 설명 중';
+          document.getElementById('studentSlideContent').innerText = '선생님의 설명을 들으며 아래 버튼으로 자유롭게 반응을 남겨보세요!';
+          slideImg.style.display = 'none';
+        }
+        showScreen('slideScreen');
+        break;
 
         case 'QUESTION_START':
           renderStudentQuizButtons(data.optionsCount || 4);
@@ -414,14 +432,64 @@
           break;
       }
     }
+    /* [요청 2] 도배 방지를 위한 10초 반응 쿨타임 변수 */
+let lastReactionTime = 0;
+const REACTION_COOLDOWN_MS = 10000;
+    /* [수정] 슬라이드 반응 및 커스텀 한 줄 의견 전송 함수 추가 (누락되었던 전송 로직 복구) */
+    /* [요청 2] 10초 쿨타임 검증 후 슬라이드 반응 전송 */
+  function sendSlideReaction(emojiVal) {
+    const now = Date.now();
+    const timePassed = now - lastReactionTime;
 
-    function sendAnswer(optionIndex) {
-      clearInterval(studentTimerInterval);
-      const timeTaken = ((performance.now() - startTime) / 1000).toFixed(2);
-      conn.send({ type: 'SUBMIT_ANSWER', selectedOption: optionIndex, timeTaken: parseFloat(timeTaken) });
-      document.getElementById('submitWaitSubtext').innerText = getRandomItem(submitWaitMessages);
-      showScreen('submittedScreen');
+    if (timePassed < REACTION_COOLDOWN_MS) {
+      const remainSec = Math.ceil((REACTION_COOLDOWN_MS - timePassed) / 1000);
+      alert(`⏱  ${remainSec}초 쉬었다가 다시 말해볼까요?`);
+      return;
     }
+
+    if (conn && conn.open) {
+      const headerNick = document.getElementById('headerNickname') ? document.getElementById('headerNickname').innerText : '';
+      const inputNick = document.getElementById('nickname') ? document.getElementById('nickname').value : '';
+      const nickname = headerNick || inputNick || '학생';
+
+      conn.send({
+        type: 'SLIDE_REACTION',
+        emoji: emojiVal,
+        nickname: nickname
+      });
+
+      lastReactionTime = Date.now();
+    }
+  }
+
+    function sendCustomComment() {
+      const inputEl = document.getElementById('slideCustomComment');
+      if (!inputEl) return;
+      const val = inputEl.value.trim();
+      if (val) {
+        sendSlideReaction(val);
+        inputEl.value = '';
+      }
+    }
+
+    /* [버그 1 해결] 통신 채널 검증 및 답안 제출 후 안전하게 제출 완료 화면 전환 */
+  function sendAnswer(optionIndex) {
+    clearInterval(studentTimerInterval);
+    const timeTaken = ((performance.now() - startTime) / 1000).toFixed(2);
+    
+    if (conn && conn.open) {
+      conn.send({ 
+        type: 'SUBMIT_ANSWER', 
+        selectedOption: optionIndex, 
+        timeTaken: parseFloat(timeTaken) 
+      });
+    } else {
+      alert("선생님과의 연결이 원활하지 않습니다. 화면을 새로고침 후 다시 연결해주세요.");
+    }
+
+    document.getElementById('submitWaitSubtext').innerText = getRandomItem(submitWaitMessages);
+    showScreen('submittedScreen');
+  }
 
     function startStudentPreview(qNum, duration = 3) {
       clearInterval(previewTimerInterval);
@@ -468,19 +536,20 @@
       }
     }
 
-    function renderStudentQuizButtons(count) {
-      const gridEl = document.querySelector('.option-grid');
-      if (!gridEl) return;
-      const btnClasses = ['opt-1', 'opt-2', 'opt-3', 'opt-4'];
-      const btnLabels = ['①', '②', '③', '④'];
-      gridEl.style.gridTemplateColumns = '1fr 1fr';
+    /* [버그 1 해결] 터치/클릭 폼 제출 이탈 방지를 위해 type="button" 명시 */
+  function renderStudentQuizButtons(count) {
+    const gridEl = document.querySelector('.option-grid');
+    if (!gridEl) return;
+    const btnClasses = ['opt-1', 'opt-2', 'opt-3', 'opt-4'];
+    const btnLabels = ['①', '②', '③', '④'];
+    gridEl.style.gridTemplateColumns = '1fr 1fr';
 
-      let html = '';
-      for (let i = 0; i < count; i++) {
-        html += `<button class="opt-btn ${btnClasses[i]}" onclick="sendAnswer(${i + 1})">${btnLabels[i]}</button>`;
-      }
-      gridEl.innerHTML = html;
+    let html = '';
+    for (let i = 0; i < count; i++) {
+      html += `<button type="button" class="opt-btn ${btnClasses[i]}" onclick="sendAnswer(${i + 1})">${btnLabels[i]}</button>`;
     }
+    gridEl.innerHTML = html;
+  }
 
     function showScreen(screenId) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
