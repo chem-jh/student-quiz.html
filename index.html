@@ -564,6 +564,23 @@
         if (['1', '2', '3', '4'].includes(e.key)) sendAnswer(parseInt(e.key));
       }
     });
+    // 페이지가 로드될 때 실행
+window.addEventListener('DOMContentLoaded', () => {
+  // 1. URL의 쿼리 스트링 파라미터 읽기
+  const urlParams = new URLSearchParams(window.location.search);
+  
+  // URL에서 'seat' 또는 'studentId' 값 가져오기
+  const seatParam = urlParams.get('seat') || urlParams.get('studentId');
+
+  // 2. 파라미터가 존재할 경우 입력창(#studentId)에 자동으로 값 설정
+  if (seatParam) {
+    const studentIdInput = document.getElementById('studentId');
+    if (studentIdInput) {
+      studentIdInput.value = seatParam;
+    }
+  }
+});
+
   </script>
 </body>
 </html>
